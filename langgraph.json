@@ -1,0 +1,7 @@
+{
+  "node_version": "20",
+  "graphs": {
+    "orchestrator": "./src/agents/orchestrator.ts:orchestrator"
+  },
+  "env": ".env"
+}
