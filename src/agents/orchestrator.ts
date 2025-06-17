@@ -123,12 +123,14 @@ Workflow Stages:
       }
 
       const args = call.args as Record<string, any>;
+      console.log(`[orchestrator] Executing tool: ${call.name} with args:`, JSON.stringify(args, null, 2));
       let result: any;
       try {
         const rawResult: unknown = tool.call ? await tool.call(args) : await tool(args);
         result = rawResult === undefined ? null : rawResult;
+        console.log(`[orchestrator] Tool ${call.name} completed successfully`);
       } catch (e) {
-        console.error(`Error executing tool ${call.name} with args ${JSON.stringify(args)}:`, e);
+        console.error(`[orchestrator] Error executing tool ${call.name} with args ${JSON.stringify(args)}:`, e);
         result = `Error executing tool ${call.name}: ${(e as Error).message}`;
       }
       

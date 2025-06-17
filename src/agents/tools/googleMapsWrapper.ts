@@ -16,9 +16,11 @@ export interface Place {
  * Reason: Replace external CLI scraper with an in-process browser-based scraper for better control and cross-platform support.
  */
 export async function scrapeGoogleMaps(query: string): Promise<Place[]> {
-  const browser = await chromium.launch({ headless: false }); // Changed to false for debugging
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  console.log(`[scrapeGoogleMaps] Starting Google Maps scrape for query: "${query}"`);
+  try {
+    const browser = await chromium.launch({ headless: true }); // Changed back to headless for production
+    const context = await browser.newContext();
+    const page = await context.newPage();
   console.log(`[scrapeGoogleMaps] Navigating to: https://www.google.com/maps/search/${encodeURIComponent(query)}`);
   try {
     await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -93,6 +95,11 @@ export async function scrapeGoogleMaps(query: string): Promise<Place[]> {
     });
   }
 
-  await browser.close();
-  return results;
+    await browser.close();
+    console.log(`[scrapeGoogleMaps] Successfully scraped ${results.length} places for query: "${query}"`);
+    return results;
+  } catch (error) {
+    console.error(`[scrapeGoogleMaps] Error in scrapeGoogleMaps for query "${query}":`, error);
+    throw error;
+  }
 }

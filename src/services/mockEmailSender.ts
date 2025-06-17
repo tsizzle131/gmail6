@@ -1,0 +1,151 @@
+import logger from '../logger';
+import { supabase } from '../db/supabaseClient';
+import { EmailData, EmailSendResult } from './emailSender';
+
+/**
+ * Mock email sender for testing - logs emails instead of actually sending them
+ * Perfect for development and testing without requiring real Mailgun configuration
+ */
+export async function sendEmailMock(emailData: EmailData): Promise<EmailSendResult> {
+  try {
+    logger.info(`[mockEmailSender] 📧 MOCK EMAIL SENT 📧`, {
+      to: emailData.to,
+      from: emailData.from,
+      subject: emailData.subject,
+      campaignId: emailData.campaignId,
+      contactId: emailData.contactId,
+      emailType: emailData.emailType,
+      sequenceNumber: emailData.sequenceNumber
+    });
+
+    // Log the email content for debugging
+    console.log('='.repeat(80));
+    console.log('📧 MOCK EMAIL DETAILS:');
+    console.log('='.repeat(80));
+    console.log(`TO: ${emailData.to}`);
+    console.log(`FROM: ${emailData.from}`);
+    console.log(`SUBJECT: ${emailData.subject}`);
+    console.log('');
+    console.log('CONTENT:');
+    console.log('-'.repeat(40));
+    console.log(emailData.html);
+    console.log('='.repeat(80));
+
+    // Generate a mock message ID
+    const mockMessageId = `mock_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    // Store email in database if we have campaign/contact info
+    if (emailData.campaignId && emailData.contactId) {
+      await storeEmailHistoryMock({
+        contactId: emailData.contactId,
+        campaignId: emailData.campaignId,
+        emailType: emailData.emailType || 'outbound_cold',
+        subject: emailData.subject,
+        content: emailData.html,
+        mailgunMessageId: mockMessageId,
+        sequenceNumber: emailData.sequenceNumber || 1,
+        sentAt: new Date(),
+      });
+    }
+
+    return {
+      success: true,
+      messageId: mockMessageId,
+      deliveryStatus: 'queued'
+    };
+
+  } catch (error) {
+    logger.error(`[mockEmailSender] Failed to process mock email to ${emailData.to}`, {
+      error: (error as Error).message,
+      campaignId: emailData.campaignId,
+      contactId: emailData.contactId
+    });
+
+    return {
+      success: false,
+      error: (error as Error).message,
+      deliveryStatus: 'failed'
+    };
+  }
+}
+
+/**
+ * Store mock email history in database
+ */
+async function storeEmailHistoryMock(data: {
+  contactId: string;
+  campaignId: string;
+  emailType: string;
+  subject: string;
+  content: string;
+  mailgunMessageId: string;
+  sequenceNumber: number;
+  sentAt: Date;
+}) {
+  try {
+    const { error } = await supabase
+      .from('email_history')
+      .insert({
+        contact_id: data.contactId,
+        campaign_id: data.campaignId,
+        email_type: data.emailType,
+        subject: data.subject,
+        content: data.content,
+        mailgun_message_id: `MOCK_${data.mailgunMessageId}`,
+        email_sequence_number: data.sequenceNumber,
+        sent_at: data.sentAt.toISOString(),
+      });
+
+    if (error) {
+      logger.error(`[mockEmailSender] Failed to store mock email history`, { error: error.message });
+    } else {
+      logger.info(`[mockEmailSender] Mock email history stored successfully`);
+    }
+  } catch (error) {
+    logger.error(`[mockEmailSender] Error storing mock email history`, { error: (error as Error).message });
+  }
+}
+
+/**
+ * Send mock test email
+ */
+export async function sendTestEmailMock(to: string = 'tristanwaite7@gmail.com'): Promise<EmailSendResult> {
+  const testEmailData: EmailData = {
+    to,
+    from: 'ReignOverTech <hello@reignovertech.com>',
+    subject: '🚀 ReignOverTech Email System Test (MOCK MODE)',
+    html: `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>🚀 ReignOverTech Email System Test (MOCK MODE)</h2>
+          <p>This is a test email from the ReignOverTech email automation system running in <strong>MOCK MODE</strong>.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+            <p><strong>📧 Test Details:</strong></p>
+            <ul>
+              <li>✅ Email crafting system: Operational</li>
+              <li>✅ Company knowledge integration: Active</li>
+              <li>✅ Database tracking: Functional</li>
+              <li>⚠️ Mailgun integration: Mock mode (for testing)</li>
+              <li>🕐 Timestamp: ${new Date().toISOString()}</li>
+              <li>🔧 System: Gmail6 Cold Outreach Agent</li>
+            </ul>
+          </div>
+          
+          <p>If you can see this email in the console logs, the email sending system is working correctly! 🎉</p>
+          
+          <p style="color: #28a745;"><strong>Next step:</strong> Configure real Mailgun domain for production email delivery.</p>
+          
+          <hr style="margin: 30px 0;">
+          <p style="font-size: 12px; color: #666;">
+            This is an automated test email from ReignOverTech.<br>
+            Generated by the AI-powered email crafting system.<br>
+            <em>Currently running in development/mock mode.</em>
+          </p>
+        </body>
+      </html>
+    `,
+  };
+
+  return await sendEmailMock(testEmailData);
+}

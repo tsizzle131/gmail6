@@ -41,7 +41,6 @@ router.post('/leadgen', async (req: Request, res: Response) => {
     const initialMessage = new HumanMessage({ content: initialContent });
     // Run the orchestrator graph starting with the user message
     console.log('Orchestrator object:', orchestrator);
-    console.log('Is orchestrator.run a function?', typeof orchestrator.run === 'function');
     const result = await orchestrator.invoke({ messages: [initialMessage] });
     console.log('Final result from orchestrator.invoke:', JSON.stringify(result, null, 2));
 

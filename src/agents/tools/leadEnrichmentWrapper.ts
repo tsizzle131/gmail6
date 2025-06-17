@@ -72,7 +72,7 @@ export async function enrichLead(
             { role: 'system', content: 'You are an AI research assistant. Provide concise and factual information based on the company name and website if available.' },
             { role: 'user', content: `Research company: ${params.name}${params.website ? ` (${params.website})` : ''}. Provide a summary of their business, industry, and any notable recent activities or technologies used.` }
           ],
-          max_tokens: 700, // Increased slightly for better context
+          max_tokens: 200, // Reduced to match perplexity wrapper
         }),
       });
       if (!resp.ok) {
@@ -100,10 +100,13 @@ export async function enrichLead(
   const chain = prompt.pipe(modelWithJsonMode);
 
   try {
+    // Limit context data to prevent token explosion
+    const limitedContext = contextData.length > 1000 ? contextData.substring(0, 1000) + '...' : contextData;
+    
     const response = await chain.invoke({
       name: params.name,
       website: params.website || '',
-      context: contextData,
+      context: limitedContext,
     });
     // response should already be a parsed object when using withStructuredOutput
     return response as LeadEnrichment;

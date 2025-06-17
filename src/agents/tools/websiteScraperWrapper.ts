@@ -1,6 +1,76 @@
 import { chromium, Browser } from 'playwright';
 
 /**
+ * Summarizes website content to extract only essential business information
+ */
+function summarizeWebsiteContent(content: string): string {
+  const lines = content.split('\n').filter(line => line.trim().length > 0);
+  
+  // Extract key information patterns
+  const businessInfo: string[] = [];
+  const contactInfo: string[] = [];
+  const services: string[] = [];
+  
+  // Keywords for business information
+  const businessKeywords = ['about', 'company', 'business', 'industry', 'founded', 'established', 'mission', 'vision', 'team', 'employees', 'staff'];
+  const contactKeywords = ['contact', 'email', 'phone', 'address', 'location', '@', 'tel:', 'mailto:'];
+  const serviceKeywords = ['services', 'products', 'solutions', 'offerings', 'expertise', 'specializes', 'consulting'];
+  
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    
+    // Skip navigation, footer, and common website elements
+    if (lowerLine.includes('cookie') || lowerLine.includes('privacy') || 
+        lowerLine.includes('terms') || lowerLine.includes('copyright') ||
+        lowerLine.includes('all rights reserved') || lowerLine.includes('menu') ||
+        lowerLine.includes('navigation') || line.length < 10) {
+      continue;
+    }
+    
+    // Extract contact information
+    if (contactKeywords.some(keyword => lowerLine.includes(keyword)) || 
+        line.includes('@') || line.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)) {
+      contactInfo.push(line.trim());
+    }
+    
+    // Extract business information
+    else if (businessKeywords.some(keyword => lowerLine.includes(keyword))) {
+      businessInfo.push(line.trim());
+    }
+    
+    // Extract services information
+    else if (serviceKeywords.some(keyword => lowerLine.includes(keyword))) {
+      services.push(line.trim());
+    }
+  }
+  
+  // Build summary with limits to prevent token explosion
+  const summary = [];
+  
+  if (businessInfo.length > 0) {
+    summary.push('BUSINESS INFO:');
+    summary.push(...businessInfo.slice(0, 5)); // Limit to 5 lines
+    summary.push('');
+  }
+  
+  if (services.length > 0) {
+    summary.push('SERVICES:');
+    summary.push(...services.slice(0, 3)); // Limit to 3 lines
+    summary.push('');
+  }
+  
+  if (contactInfo.length > 0) {
+    summary.push('CONTACT INFO:');
+    summary.push(...contactInfo.slice(0, 5)); // Limit to 5 lines
+  }
+  
+  const result = summary.join('\n').substring(0, 2000); // Hard limit to 2000 chars
+  console.log(`[summarizeWebsiteContent] Reduced content from ${content.length} to ${result.length} characters`);
+  
+  return result || 'No relevant business information found on website.';
+}
+
+/**
  * Scrapes the HTML content of a webpage at the given URL using Playwright.
  */
 async function getBrowser(): Promise<Browser> {
@@ -11,9 +81,11 @@ async function getBrowser(): Promise<Browser> {
 }
 
 export async function scrapeWebsite(url: string): Promise<string> {
-  const browserInstance = await getBrowser();
-  const context = await browserInstance.newContext();
-  const page = await context.newPage();
+  console.log(`[scrapeWebsite] Starting scrape for: ${url}`);
+  try {  
+    const browserInstance = await getBrowser();
+    const context = await browserInstance.newContext();
+    const page = await context.newPage();
   let mainContent = '';
   let contactPageContent = '';
 
@@ -74,5 +146,14 @@ export async function scrapeWebsite(url: string): Promise<string> {
     // Consider closing browserInstance if it's not reused elsewhere or if many scrapers run
     // await browserInstance.close(); 
   }
-  return contactPageContent + '\n\n--- Main Page Content ---\n\n' + mainContent;
+  
+    // Summarize content to reduce token usage
+    const fullContent = contactPageContent + '\n\n--- Main Page Content ---\n\n' + mainContent;
+    const result = summarizeWebsiteContent(fullContent);
+    console.log(`[scrapeWebsite] Successfully scraped and summarized: ${url}`);
+    return result;
+  } catch (error) {
+    console.error(`[scrapeWebsite] Error in scrapeWebsite for ${url}:`, error);
+    throw error;
+  }
 }

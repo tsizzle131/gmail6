@@ -20,11 +20,18 @@ export async function researchCompanyWithPerplexity(params: PerplexityResearchPa
   const { companyName, websiteUrl } = params;
 
   if (!config.perplexityApiUrl || !config.perplexityApiKey) {
-    console.warn('Perplexity API URL or Key is not configured. Skipping research.');
+    console.warn(`[perplexityResearchWrapper] Perplexity API not configured. URL: ${config.perplexityApiUrl ? 'SET' : 'MISSING'}, Key: ${config.perplexityApiKey ? 'SET' : 'MISSING'}`);
     return "Perplexity API not configured. Research skipped.";
   }
 
-  const researchQuery = `Provide a concise company overview and key insights for ${companyName}${websiteUrl ? ` (website: ${websiteUrl})` : ''}. Focus on their main business, industry, and any notable technologies or recent activities.`;
+  const researchQuery = `Research ${companyName}${websiteUrl ? ` (${websiteUrl})` : ''} and provide ONLY the following information in this exact format:
+INDUSTRY: [primary industry]
+BUSINESS: [one sentence describing their main business]
+SIZE: [employee count range like "10-50" or "500+"]
+FOUNDED: [year if available]
+TECH: [key technologies they use, max 3]
+NOTABLE: [one notable fact or recent news]
+Keep response under 200 words total.`;
 
   try {
     console.log(`[perplexityResearchWrapper] Querying Perplexity for: ${companyName}`);
@@ -40,7 +47,7 @@ export async function researchCompanyWithPerplexity(params: PerplexityResearchPa
           { role: 'system', content: 'You are an AI research assistant. Provide concise and factual information.' },
           { role: 'user', content: researchQuery },
         ],
-        max_tokens: 500, // Keep the response concise
+        max_tokens: 200, // Reduced for more concise responses
       }),
     });
 

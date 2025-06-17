@@ -13,12 +13,19 @@ type AppConfig = {
   databaseUrl: string;
   redisUrl: string;
   port: number;
+  nodeEnv: string;
   frontendUrl: string;
   mailgunApiKey: string;
   mailgunDomain: string;
+  mailgunWebhookSigningKey?: string;
   openaiApiKey: string;
   perplexityApiKey?: string;
   perplexityApiUrl?: string;
+  // Gmail API configuration
+  googleClientId: string;
+  googleClientSecret: string;
+  googleRedirectUri: string;
+  encryptionKey: string;
 };
 
 // Validate required environment variables
@@ -33,6 +40,10 @@ const requiredEnv = [
   'MAILGUN_API_KEY',
   'MAILGUN_DOMAIN',
   'OPENAI_API_KEY',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_REDIRECT_URI',
+  'ENCRYPTION_KEY',
 ];
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
@@ -48,12 +59,19 @@ const config: AppConfig = {
   databaseUrl: process.env.DATABASE_URL!,
   redisUrl: process.env.REDIS_URL!,
   port: parseInt(process.env.PORT!, 10),
+  nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.NEXT_PUBLIC_API_URL!,
   mailgunApiKey: process.env.MAILGUN_API_KEY!,
   mailgunDomain: process.env.MAILGUN_DOMAIN!,
+  mailgunWebhookSigningKey: process.env.MAILGUN_WEBHOOK_SIGNING_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY!,
   perplexityApiKey: process.env.PERPLEXITY_API_KEY,
   perplexityApiUrl: process.env.PERPLEXITY_API_URL,
+  // Gmail API configuration
+  googleClientId: process.env.GOOGLE_CLIENT_ID!,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI!,
+  encryptionKey: process.env.ENCRYPTION_KEY!,
 };
 
 export default config;

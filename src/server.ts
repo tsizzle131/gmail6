@@ -7,11 +7,22 @@ import config from './config';
 import logger from './logger';
 import { pgPool } from './db/postgresPool';
 import { supabase } from './db/supabaseClient';
+import { campaignScheduler } from './services/campaignScheduler';
 
 import authRouter from './routes/auth';
 import campaignsRouter from './routes/campaigns';
 import contactsRouter from './routes/contacts';
 import leadgenRouter from './routes/leadgen';
+import emailCraftingRouter from './routes/emailCrafting';
+import emailSendingRouter from './routes/emailSending';
+import campaignManagerRouter from './routes/campaignManager';
+import campaignDemoRouter from './routes/campaignDemo';
+import companyKnowledgeRouter from './routes/companyKnowledge';
+import knowledgeManagementRouter from './routes/knowledgeManagement';
+import webhooksRouter from './routes/webhooks';
+import responseHandlerRouter from './routes/responseHandler';
+import gmailAuthRouter from './routes/gmail-auth';
+import gmailSendingRouter from './routes/gmailSending';
 
 const app = express();
 
@@ -61,8 +72,18 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // Routes
 app.use('/auth', authRouter);
+app.use('/gmail-auth', gmailAuthRouter);
+app.use('/gmail-sending', gmailSendingRouter);
 app.use('/campaigns', campaignsRouter);
 app.use('/contacts', contactsRouter);
+app.use('/email', emailCraftingRouter);
+app.use('/email', emailSendingRouter);
+app.use('/campaign-manager', campaignManagerRouter);
+app.use('/demo', campaignDemoRouter);
+app.use('/company', companyKnowledgeRouter);
+app.use('/knowledge', knowledgeManagementRouter);
+app.use('/webhooks', webhooksRouter);
+app.use('/response-handler', responseHandlerRouter);
 app.use('/', leadgenRouter);
 
 // Test error route
@@ -79,6 +100,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Start server
 app.listen(config.port, () => {
   logger.info(`Server listening on port ${config.port}`);
+  
+  // Start campaign scheduler (disabled for demo - Redis not available)
+  // campaignScheduler.start();
+  logger.info('Campaign scheduler disabled (Redis not available)');
 });
 
 export default app;
